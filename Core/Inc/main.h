@@ -76,6 +76,9 @@ void Error_Handler(void);
 #define OV7670_D1_GPIO_Port GPIOC
 #define OV7670_D2_Pin GPIO_PIN_5
 #define OV7670_D2_GPIO_Port GPIOC
+#define CAPTURAR_Pin GPIO_PIN_12
+#define CAPTURAR_GPIO_Port GPIOB
+#define CAPTURAR_EXTI_IRQn EXTI15_10_IRQn
 #define OV7670_D3_Pin GPIO_PIN_8
 #define OV7670_D3_GPIO_Port GPIOC
 #define OV7670_D4_Pin GPIO_PIN_9

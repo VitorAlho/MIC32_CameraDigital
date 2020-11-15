@@ -60,6 +60,10 @@ typedef struct{
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+#define PRESSIONADO 1
+#define SOLTO 0
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -68,13 +72,11 @@ typedef struct{
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-
 I2C_HandleTypeDef hi2c1;
 
 SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim1;
-
 TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart2;
@@ -82,9 +84,6 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 
 Display displayTFT;
-
-
-
 
 
 //Imagens BMP convertidas para RGB565
@@ -113,6 +112,11 @@ UINT br, bw;					/* File read/write count */
 
 uint32_t first;
 
+
+//Flag do Botão CAPTURAR
+
+uint8_t flagBotaoCapturar;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -126,6 +130,8 @@ static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 uint16_t geraRGB565(uint8_t red, uint8_t green, uint8_t blue);
 void LCD_TxBMP(unsigned char* data, unsigned int BitmapStart);
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -580,6 +586,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : CAPTURAR_Pin */
+  GPIO_InitStruct.Pin = CAPTURAR_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(CAPTURAR_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : SD_CS_Pin */
   GPIO_InitStruct.Pin = SD_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -587,9 +599,40 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(SD_CS_GPIO_Port, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	uint8_t i = 0;
+
+	if (GPIO_Pin == CAPTURAR_Pin){
+
+		if(HAL_GPIO_ReadPin(CAPTURAR_GPIO_Port, CAPTURAR_Pin) == RESET){
+
+			for(i = 0; i <= 254; i++){
+
+			}
+
+			if(HAL_GPIO_ReadPin(CAPTURAR_GPIO_Port, CAPTURAR_Pin) == RESET){
+
+				flagBotaoCapturar = PRESSIONADO;
+			}
+		}
+
+	}
+
+}
+
+
+
+
+
+
 //Gera uma cor no formato RGB 565
 uint16_t geraRGB565(uint8_t red, uint8_t green, uint8_t blue)
 {
