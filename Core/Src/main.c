@@ -137,6 +137,37 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+void exibirFrameNoDisplay ( void ) {
+
+	if( W==320 ){
+
+		setAddrWindow( 0, 0, W, H );
+
+	}
+	else{
+
+		setAddrWindow( 80, 60, W+80-1, H+60-1 );
+
+	}
+
+	inicioDados();  // Habilita o CHIP SELECT do display TFT
+
+	captureImg( displayTFT.width, displayTFT.height );
+
+	fimDados();		// Desliga o CHIP SELECT do display TFT
+
+}
+
+void salvarFrameNoCartaoSD ( void ) {
+
+}
+
+void piscaTelaDoDisplay ( uint8_t color ) {
+
+	fillScreen(color);
+
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -240,23 +271,17 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	if( W==320 ){
+	  exibirFrameNoDisplay();
 
-  		setAddrWindow( 0, 0, W, H );
+	  if( flagBotaoCapturar == PRESSIONADO ) {
 
-  	}
-  	else{
+		  flagBotaoCapturar = SOLTO;
 
-  		setAddrWindow( 80, 60, W+80-1, H+60-1 );
+		  piscaTelaDoDisplay(BLACK);
 
-  	}
+		  salvarFrameNoCartaoSD();
 
-
-  	inicioDados();  // Habilita o CHIP SELECT do display TFT
-
-	captureImg( displayTFT.width, displayTFT.height );
-
-  	fimDados();		// Desliga o CHIP SELECT do display TFT
+	  }
 
   }
   /* USER CODE END 3 */
