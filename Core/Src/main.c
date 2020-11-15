@@ -85,6 +85,7 @@ UART_HandleTypeDef huart2;
 
 Display displayTFT;
 
+uint16_t pixelLineVector[W];
 
 //Imagens BMP convertidas para RGB565
 
@@ -112,7 +113,6 @@ UINT br, bw;					/* File read/write count */
 
 uint32_t first;
 
-
 //Flag do Botão CAPTURAR
 
 uint8_t flagBotaoCapturar;
@@ -138,7 +138,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 /* USER CODE BEGIN 0 */
 
 void exibirFrameNoDisplay ( void ) {
-
 	if( W==320 ){
 
 		setAddrWindow( 0, 0, W, H );
@@ -152,13 +151,15 @@ void exibirFrameNoDisplay ( void ) {
 
 	inicioDados();  // Habilita o CHIP SELECT do display TFT
 
-	captureImg( displayTFT.width, displayTFT.height );
+	captureImg( displayTFT.width, displayTFT.height, pixelLineVector );
 
 	fimDados();		// Desliga o CHIP SELECT do display TFT
 
 }
 
 void salvarFrameNoCartaoSD ( void ) {
+
+
 
 }
 

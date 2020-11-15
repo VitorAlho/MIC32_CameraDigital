@@ -353,7 +353,7 @@ void wrSensorRegs8_8(const struct regval_list reglist[]);
 void setColor(void);
 void setRes(void);
 void camInit(void);
-void captureImg(uint16_t wg, uint16_t hg);
+void captureImg(uint16_t wg, uint16_t hg, uint16_t *pixelx);
 void setup(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *huart);
 void loop();
 

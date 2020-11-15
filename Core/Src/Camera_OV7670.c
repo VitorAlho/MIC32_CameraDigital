@@ -294,15 +294,15 @@ void camInit(void)
  // wrReg(REG_COM17, 0X00); // Vitor 14/11/20 (Minha imagem da camera estava duplicada))
 }
 
-void captureImg(uint16_t wg, uint16_t hg)
+void captureImg(uint16_t wg, uint16_t hg, uint16_t *pixelx)
 {
-	//Observação: evitei o uso da biblioteca HAL para diminuir a latência dos comandos
-
+	//Observação: evitei o uso da biblioteca HAL para diminuir a latência dos comando
+	uint32_t lastAddress = (uint32_t)pixelx;
 	uint16_t y, x, pixel;
-	uint16_t R = 0, G = 0, B = 0, pixelx[wg];
+	uint16_t R = 0, G = 0, B = 0; //pixelx[wg];
 
 
-	HAL_UART_Transmit(HUART, "*RDY*", 5, 5);	//Envia o aviso de novo frame para o programa OV7670
+	//HAL_UART_Transmit(HUART, "*RDY*", 5, 5);	//Envia o aviso de novo frame para o programa OV7670
 
 	while (!VSYNC);	//Espera uma borda de subida	(__/''')
 	while ( VSYNC);	//Espera uma borda de descida	('''\__)
@@ -328,7 +328,7 @@ void captureImg(uint16_t wg, uint16_t hg)
 			R = (pixel & 0b11111000)<<8;
 			G = (pixel & 0b11111100)<<3;
 			B = (pixel & 0b11111000)>>3;
-			pixelx[x] = R | G | B;
+			*pixelx++ = R | G | B;
 #else
 			//Habilitar para enviar 320x240 RGB para o LCD TFT
 			pixel = pixel << 8; //RGB MSB
@@ -346,16 +346,20 @@ void captureImg(uint16_t wg, uint16_t hg)
 #endif
 		}
 
+		pixelx = (uint16_t *)lastAddress;
+
 		//Tratamento e plotagem de pixels no display TFT
 		for(x = 0; x < wg; x++)
 		{
 			//Plota pixels
-			desenhaPixel(pixelx[x]);
+			desenhaPixel(*pixelx++);
 		}
+
+		pixelx = (uint16_t *)lastAddress;
 
 		while (HREF);	//Espera uma borda de descida	('''\__)
 	}
-	HAL_Delay(10);
+	HAL_Delay(2);
 }
 
 void setup(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *huart)
@@ -385,7 +389,7 @@ void setup(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *huart)
 void loop()
 {
 #ifdef W320H240
-	captureImg(320, 240); //320x240
+	captureImg(320, 240, 0); //320x240
 #else
 	captureImg(160, 120); //160x120
 #endif
