@@ -97,6 +97,9 @@ void Error_Handler(void);
 #define SD_CS_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
+#define PRESSIONADO 1
+#define SOLTO 0
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

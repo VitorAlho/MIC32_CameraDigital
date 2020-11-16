@@ -28,6 +28,7 @@
 #include "Camera_OV7670.h"
 #include "tft.h"
 #include "user_setting.h"
+#include "file.h"
 
 /*
  * *******************************************************************
@@ -294,12 +295,30 @@ void camInit(void)
  // wrReg(REG_COM17, 0X00); // Vitor 14/11/20 (Minha imagem da camera estava duplicada))
 }
 
-void captureImg(uint16_t wg, uint16_t hg, uint16_t *pixelx)
+FATFS fs0, fs1;					/* Work area (filesystem object) for logical drives */
+
+FIL fsrc, fdst;					/* File objects */
+
+BYTE buffer[4096];   			/* File copy buffer */
+
+fileErrorCode fr;						/* FatFs function common result code */
+
+UINT br, bw;					/* File read/write count */
+
+extern uint8_t flagBotaoCapturar;
+
+extern uint8_t oneTime;
+
+extern uint8_t ultimaFotoTirada;
+
+void captureImg(uint16_t wg, uint16_t hg, UART_HandleTypeDef *huart)
 {
 	//Observação: evitei o uso da biblioteca HAL para diminuir a latência dos comando
-	uint32_t lastAddress = (uint32_t)pixelx;
+	uint16_t pixelx[wg];
 	uint16_t y, x, pixel;
 	uint16_t R = 0, G = 0, B = 0; //pixelx[wg];
+
+	uint8_t nomeFoto [10];
 
 
 	//HAL_UART_Transmit(HUART, "*RDY*", 5, 5);	//Envia o aviso de novo frame para o programa OV7670
@@ -328,7 +347,7 @@ void captureImg(uint16_t wg, uint16_t hg, uint16_t *pixelx)
 			R = (pixel & 0b11111000)<<8;
 			G = (pixel & 0b11111100)<<3;
 			B = (pixel & 0b11111000)>>3;
-			*pixelx++ = R | G | B;
+			pixelx[x] = R | G | B;
 #else
 			//Habilitar para enviar 320x240 RGB para o LCD TFT
 			pixel = pixel << 8; //RGB MSB
@@ -346,19 +365,57 @@ void captureImg(uint16_t wg, uint16_t hg, uint16_t *pixelx)
 #endif
 		}
 
-		pixelx = (uint16_t *)lastAddress;
-
 		//Tratamento e plotagem de pixels no display TFT
+
 		for(x = 0; x < wg; x++)
 		{
 			//Plota pixels
-			desenhaPixel(*pixelx++);
-		}
+			if( flagBotaoCapturar ) {
 
-		pixelx = (uint16_t *)lastAddress;
+				// SALVAR FRAME
+				//salvarFrameNoCartaoSD( pixelx );
+				fileErrorCode fr;
+				uint32_t bytesWritten = 0;
+
+				if( oneTime == 0 ) {
+
+					oneTime = 1;
+
+					fr = fileMount(&fs0, "", 0);
+
+						sprintf((char *)nomeFoto,"foto%d.txt",ultimaFotoTirada);
+
+						ultimaFotoTirada++;
+
+						fr = fileOpen(&fsrc, nomeFoto, FA_WRITE | FA_CREATE_ALWAYS);
+
+						// Escrever cabeçalho BMP
+
+				}
+
+				// Função de conversão de rbg565 para bmp
+
+				fr = fileWrite(&fsrc, pixelx, wg, &bytesWritten);
+
+				break;
+
+			}
+			else{
+
+				desenhaPixel(pixelx[x]);
+
+			}
+		}
 
 		while (HREF);	//Espera uma borda de descida	('''\__)
 	}
+
+	if( oneTime == 1 ){
+
+		fr = fileClose(&fsrc);
+
+	}
+
 	HAL_Delay(2);
 }
 

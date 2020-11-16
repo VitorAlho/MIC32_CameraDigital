@@ -22,6 +22,7 @@
 #include "main.h"
 #include "fatfs.h"
 
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 //Bibliotecas do LCD
@@ -31,6 +32,7 @@
 #include "functions.h"
 //Biblioteca de ajuste de funções para o SD Card (criada por terceiro)
 #include "fatfs_sd.h"
+#include "file.h"
 #include <string.h>
 #include <stdio.h>
 //Biblioteca da câmera OV7670
@@ -61,9 +63,6 @@ typedef struct{
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define PRESSIONADO 1
-#define SOLTO 0
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -85,17 +84,7 @@ UART_HandleTypeDef huart2;
 
 Display displayTFT;
 
-uint16_t pixelLineVector[W];
-
-//Imagens BMP convertidas para RGB565
-
-extern const unsigned short NJ_300x168[ 50400 ];
-
-extern const unsigned short fosforo_95x63[ 5985 ];
-
-extern const unsigned short bean_157x157[ 24649 ];
-
-extern const unsigned short eletriciade_200x151[ 30200 ];
+//uint16_t pixelLineVector[W];
 
 //Manipulação de arquivos via SD Card
 
@@ -105,17 +94,21 @@ FIL fsrc, fdst;					/* File objects */
 
 BYTE buffer[4096];   			/* File copy buffer */
 
-FRESULT fr;						/* FatFs function common result code */
+fileErrorCode fr;						/* FatFs function common result code */
 
 UINT br, bw;					/* File read/write count */
 
 //Transferência de arquivos BMP do SD Card para o LCD
 
-uint32_t first;
+uint32_t first=100;
 
 //Flag do Botão CAPTURAR
 
 uint8_t flagBotaoCapturar;
+
+uint8_t oneTime = 0;
+
+uint8_t ultimaFotoTirada = 0;
 
 /* USER CODE END PV */
 
@@ -151,17 +144,13 @@ void exibirFrameNoDisplay ( void ) {
 
 	inicioDados();  // Habilita o CHIP SELECT do display TFT
 
-	captureImg( displayTFT.width, displayTFT.height, pixelLineVector );
+	captureImg( displayTFT.width, displayTFT.height, &huart2);
 
 	fimDados();		// Desliga o CHIP SELECT do display TFT
 
 }
 
-void salvarFrameNoCartaoSD ( void ) {
-
-
-
-}
+uint8_t initSave = 0;
 
 void piscaTelaDoDisplay ( uint8_t color ) {
 
@@ -178,6 +167,8 @@ void piscaTelaDoDisplay ( uint8_t color ) {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+
+
 
 	int32_t i;
 
@@ -267,6 +258,12 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
+  /*
+   * Função de teste da biblioteca file.c, testa se o FATFS foi implementado corretamente.
+   */
+
+  //testFileLibrary(&huart2);
+
   while (1){
     /* USER CODE END WHILE */
 
@@ -276,12 +273,13 @@ int main(void)
 
 	  if( flagBotaoCapturar == PRESSIONADO ) {
 
+		  exibirFrameNoDisplay();
+
+		  oneTime = 0;
+
 		  flagBotaoCapturar = SOLTO;
 
 		  piscaTelaDoDisplay(BLACK);
-
-		  salvarFrameNoCartaoSD();
-
 	  }
 
   }
