@@ -36,7 +36,7 @@
   *   Customizado: 22/06/2020
   *         Autor: Leandro Poloni Dantas
   *   Observações: Este arquivo está compatibilizado no o kit ST NUCLEO-F446RE.
-  *  Modificações: - A função reset passa a consider um delay maior antes de
+  *   Modificações: - A função reset passa a consider um delay maior antes de
   *  			   escrever em um registrador, segui recomendações do presentes
   *  			   no manual do driver ILI9340.
   *  			   - (01/07/2020)Algumas funções foram criadas para facilitar a
@@ -51,6 +51,12 @@
   *  			   agora é capaz de ler toda a memória. Esse falha estava
   *  			   corrompendo o acesso a tabela de fontes LCD quando tinha
   *  			   imagens salvas em flash e o endereço passava de 0xFFFF.
+  *  			   - (27/08/2020) Criação de uma nova função para escrita de caracteres com
+  *  			   limpeza automática do fundo (write_fillbackground).
+  *  			   Criação de novas funções para o usuário com chamada para nova função write:
+  *  			   printnewtstr_bg, printstr_bg.
+  *  			   Criação da função para troca da cor de fundo do texto setTextBackColor.
+  *  			   A documentação de algumas funções foi melhorada ou criada.
   *
   ******************************************************************************
   */ 
@@ -239,11 +245,6 @@ uint16_t  _lcd_xor, _lcd_capable;
 
 uint16_t _lcd_ID, _lcd_rev, _lcd_madctl, _lcd_drivOut, _MC, _MP, _MW, _SC, _EC, _SP, _EP;
 
-
-
-
-
-
 //extern GFXfont *gfxFont;
 
 void setReadDir (void)
@@ -272,9 +273,6 @@ void setWriteDir (void)
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
 
 static void pushColors_any(uint16_t cmd, uint8_t * block, int16_t n, uint8_t first, uint8_t flags)
 {
@@ -313,6 +311,7 @@ static void pushColors_any(uint16_t cmd, uint8_t * block, int16_t n, uint8_t fir
     CS_IDLE;
 }
 
+
 static void write24(uint16_t color)
 {
     uint8_t r = color565_to_r(color);
@@ -333,7 +332,6 @@ static void writecmddata(uint16_t cmd, uint16_t dat)
 }
 
 
-
 static void WriteCmdParamN(uint16_t cmd, int8_t N, uint8_t * block)
 {
     CS_ACTIVE;
@@ -349,6 +347,7 @@ static void WriteCmdParamN(uint16_t cmd, int8_t N, uint8_t * block)
     CS_IDLE;
 }
 
+
 static inline void WriteCmdParam4(uint8_t cmd, uint8_t d1, uint8_t d2, uint8_t d3, uint8_t d4)
 {
     uint8_t d[4];
@@ -356,8 +355,10 @@ static inline void WriteCmdParam4(uint8_t cmd, uint8_t d1, uint8_t d2, uint8_t d
     WriteCmdParamN(cmd, 4, d);
 }
 
+
 #define TFTLCD_DELAY 0xFFFF
 #define TFTLCD_DELAY8 0x7F
+
 static void init_table(const void *table, int16_t size)
 {
 
@@ -399,7 +400,6 @@ static void init_table16(const void *table, int16_t size)
 }
 
 
-
 void reset(void)
 {
     done_reset = 1;
@@ -417,6 +417,7 @@ void reset(void)
 	WriteCmdData(0xB0, 0x0000);   //R61520 needs this to read ID
 }
 
+
 static uint16_t read16bits(void)
 {
     uint16_t ret;
@@ -425,6 +426,7 @@ static uint16_t read16bits(void)
     READ_8(lo);
     return (ret << 8) | lo;
 }
+
 
 uint16_t readReg(uint16_t reg, int8_t index)
 {
@@ -444,12 +446,14 @@ uint16_t readReg(uint16_t reg, int8_t index)
     return ret;
 }
 
+
 uint32_t readReg32(uint16_t reg)
 {
     uint16_t h = readReg(reg, 0);
     uint16_t l = readReg(reg, 1);
     return ((uint32_t) h << 16) | (l);
 }
+
 
 uint32_t readReg40(uint16_t reg)
 {
@@ -2512,8 +2516,6 @@ case 0x4532:    // thanks Leodino
 }
 
 
-
-
 uint16_t readID(void)
 {
     uint16_t ret, ret2;
@@ -2610,6 +2612,7 @@ uint16_t readID(void)
 	return readReg(0,0);          //0154, 7783, 9320, 9325, 9335, B505, B509
 }
 
+
 // independent cursor and window registers.   S6D0154, ST7781 increments.  ILI92320/5 do not.
 int16_t readGRAM(int16_t x, int16_t y, uint16_t * block, int16_t w, int16_t h)
 {
@@ -2676,6 +2679,7 @@ int16_t readGRAM(int16_t x, int16_t y, uint16_t * block, int16_t w, int16_t h)
         setAddrWindow(0, 0, width() - 1, height() - 1);
     return 0;
 }
+
 
 void setRotation(uint8_t r)
 {
@@ -2841,6 +2845,7 @@ void setRotation(uint8_t r)
    vertScroll(0, HEIGHT, 0);   //reset scrolling after a rotation
 }
 
+
 void drawPixel(int16_t x, int16_t y, uint16_t color)
 {
    // MCUFRIEND just plots at edge if you try to write outside of the box:
@@ -2854,6 +2859,7 @@ void drawPixel(int16_t x, int16_t y, uint16_t color)
    if (is9797) { CS_ACTIVE; WriteCmd(_MW); write24(color); CS_IDLE;} else
    WriteCmdData(_MW, color);
 }
+
 
 void setAddrWindow(int16_t x, int16_t y, int16_t x1, int16_t y1)
 {
@@ -2897,6 +2903,7 @@ void setAddrWindow(int16_t x, int16_t y, int16_t x1, int16_t y1)
        }
    }
 }
+
 
 void vertScroll(int16_t top, int16_t scrollines, int16_t offset)
 {
@@ -2976,8 +2983,6 @@ void vertScroll(int16_t top, int16_t scrollines, int16_t offset)
 }
 
 
-
-
 void pushColors16b(uint16_t * block, int16_t n, uint8_t first)
 {
     pushColors_any(_MW, (uint8_t *)block, n, first, 0);
@@ -2996,6 +3001,7 @@ void fillScreen(uint16_t color)
 {
     fillRect(0, 0, _width, _height, color);
 }
+
 
 void invertDisplay(uint8_t i)
 {
@@ -3043,6 +3049,7 @@ void invertDisplay(uint8_t i)
     }
 }
 
+
 void  drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
 {
 	fillRect(x, y, 1, h, color);
@@ -3052,10 +3059,12 @@ void  drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color)
 	fillRect(x, y, w, 1, color);
 }
 
+
 void writePixel(int16_t x, int16_t y, uint16_t color)
 {
     drawPixel(x, y, color);
 }
+
 
 void writeLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
         uint16_t color) {
@@ -3111,6 +3120,7 @@ void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color)
     }
 }
 
+
 void drawCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color)
 {
     int16_t f = 1 - r;
@@ -3144,6 +3154,7 @@ void drawCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color)
         writePixel(x0 - y, y0 - x, color);
     }
 }
+
 
 void drawCircleHelper( int16_t x0, int16_t y0, int16_t r, uint8_t cornername, uint16_t color)
 {
@@ -3181,11 +3192,13 @@ void drawCircleHelper( int16_t x0, int16_t y0, int16_t r, uint8_t cornername, ui
     }
 }
 
+
 void fillCircle(int16_t x0, int16_t y0, int16_t r, uint16_t color)
 {
     drawFastVLine(x0, y0-r, 2*r+1, color);
     fillCircleHelper(x0, y0, r, 3, 0, color);
 }
+
 
 void fillCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t corners, int16_t delta, uint16_t color)
 {
@@ -3224,6 +3237,7 @@ void fillCircleHelper(int16_t x0, int16_t y0, int16_t r, uint8_t corners, int16_
     }
 }
 
+
 void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
 {
     drawFastHLine(x, y, w, color);
@@ -3231,6 +3245,7 @@ void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
     drawFastVLine(x, y, h, color);
     drawFastVLine(x+w-1, y, h, color);
 }
+
 
 void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color)
 {
@@ -3360,7 +3375,6 @@ void drawTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, in
 
 void fillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color)
 {
-
     int16_t a, b, y, last;
 
     // Sort coordinates by Y order (y2 >= y1 >= y0)
@@ -3447,6 +3461,7 @@ void testFillScreen()
     fillScreen(BLACK);
 }
 
+
 void testLines(uint16_t color)
 {
     int           x1, y1, x2, y2,
@@ -3490,6 +3505,7 @@ void testLines(uint16_t color)
 
 }
 
+
 void testFastLines(uint16_t color1, uint16_t color2)
 {
     int           x, y, w = width(), h = height();
@@ -3498,6 +3514,7 @@ void testFastLines(uint16_t color1, uint16_t color2)
     for (y = 0; y < h; y += 5) drawFastHLine(0, y, w, color1);
     for (x = 0; x < w; x += 5) drawFastVLine(x, 0, h, color2);
 }
+
 
 void testRects(uint16_t color) {
     int           n, i, i2,
@@ -3512,6 +3529,7 @@ void testRects(uint16_t color) {
     }
 
 }
+
 
 void testFilledRects(uint16_t color1, uint16_t color2)
 {
@@ -3530,6 +3548,7 @@ void testFilledRects(uint16_t color1, uint16_t color2)
     }
 }
 
+
 void testFilledCircles(uint8_t radius, uint16_t color)
 {
     int x, y, w = width(), h = height(), r2 = radius * 2;
@@ -3542,6 +3561,7 @@ void testFilledCircles(uint8_t radius, uint16_t color)
     }
 
 }
+
 
 void testCircles(uint8_t radius, uint16_t color)
 {
@@ -3559,6 +3579,7 @@ void testCircles(uint8_t radius, uint16_t color)
 
 }
 
+
 void testTriangles() {
     int           n, i, cx = width()  / 2 - 1,
                         cy = height() / 2 - 1;
@@ -3575,6 +3596,7 @@ void testTriangles() {
 
 }
 
+
 void testFilledTriangles() {
     int           i, cx = width()  / 2 - 1,
                      cy = height() / 2 - 1;
@@ -3587,6 +3609,7 @@ void testFilledTriangles() {
                          color565(i, i, 0));
     }
 }
+
 
 void testRoundRects() {
     int           w, i, i2, red, step,
@@ -3605,6 +3628,7 @@ void testRoundRects() {
 
 }
 
+
 void testFilledRoundRects() {
     int           i, i2, green, step,
                   cx = width()  / 2 - 1,
@@ -3622,6 +3646,7 @@ void testFilledRoundRects() {
 }
 
 
+/********************************* END TESTS  *********************************************/
 
 void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size)
 {
@@ -3668,6 +3693,7 @@ void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg
     } // End classic vs custom font
 }
 /**************************************************************************/
+
 /*!
     @brief  Print one byte/character of data, used to support print()
     @param  c  The 8-bit ascii character to write
@@ -3703,6 +3729,85 @@ size_t write(uint8_t c)
 
     }
     return 1;
+}
+
+/*!
+    @brief  Print one byte/character of data, used to support print()
+    				print the background first with the textbgcolor
+    @param  c  The 8-bit ascii character to write
+*/
+/**************************************************************************/
+size_t write_fillbackground(uint8_t c)
+{
+	{
+		//Verifica se é um enter
+		if(c == '\n')
+		{
+				//Retorna o cursor para 1a coluna
+				cursor_x  = 0;
+				//Acrescenta o espaço de uma linha em y
+				cursor_y += (int16_t)textsize *
+										(uint8_t)pgm_read_byte(&gfxFont->yAdvance);
+		}
+		//Senão, se não for o "carrier return"
+		else if(c != '\r')
+		{
+			//Lê o código do 1a caractere válido
+			uint8_t first = pgm_read_byte(&gfxFont->first);
+			//Se o caractere a ser escrito é válido
+			if((c >= first) && (c <= (uint8_t)pgm_read_byte(&gfxFont->last)))
+			{
+				//Modificação: Desenha um retângulo preenchido com a cor de fundo com as dimensões
+				//máximas ocupado por um caractere.
+				//Neste estudo, para as fontes do tipo mono_x_ os caracaters '\' e '/' tem as maiores dimensões.
+				uint8_t maior = '/';
+				//Preenche o ponteiro para struct glyph com os parâmetros do caractere '\'
+				GFXglyph *glyph2 = &(((GFXglyph *)pgm_read_pointer(
+													&gfxFont->glyph))[maior - first]);
+				//Desenha o retângulo cobrinto toda a área do maior carctere possível
+				int16_t xx = cursor_x;
+				int8_t yo = pgm_read_byte(&glyph2->yOffset);
+				int16_t yy = (int16_t)cursor_y + yo*textsize;
+				int16_t ww = pgm_read_byte(&glyph2->xAdvance) * textsize;
+				int16_t hh = pgm_read_byte(&glyph2->height)*textsize;
+				fillRect(xx, yy, ww, hh, textbgcolor);
+
+				//Preenche o ponteiro para struct glyph com os parâmetros do caractere
+				GFXglyph *glyph = &(((GFXglyph *)pgm_read_pointer(
+					&gfxFont->glyph))[c - first]);
+				//Lê a largura e altura do retêngulo formado pelos pixels a serem pintados (desenho do caractere)
+				uint8_t   w     = pgm_read_byte(&glyph->width),
+									h     = pgm_read_byte(&glyph->height);
+				//Se a latura e a largura é maior que 0 (não é o caractere "espaço")
+				if((w > 0) && (h > 0)) // Is there an associated bitmap?
+				{
+					//Lê o deslocamente do cursor até a primeiro coluna com pixels a serem pintados
+					int16_t xo = (int8_t)pgm_read_byte(&glyph->xOffset); // sic
+					//Se chegar no linha da linha, quebra a linha e continua na linha seguinte
+					if(wrap && ((cursor_x + textsize * (xo + w)) > _width))
+					{
+							cursor_x  = 0;
+							cursor_y += (int16_t)textsize *
+								(uint8_t)pgm_read_byte(&gfxFont->yAdvance);
+
+							//Modificação: Se precisou quebrar a linha, desenha um novo retângulo
+							//na linha seguinte
+							//Desenha o retângulo cobrinto toda a área do maior carctere possível
+							xx = cursor_x;
+							yy = (int16_t)cursor_y + yo*textsize;
+							fillRect(xx, yy, ww, hh, textbgcolor);
+					}
+					//Desenha o caractere
+					drawChar(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
+					//drawCharLF(cursor_x, cursor_y, c, textcolor, textbgcolor, textsize);
+				}
+				//Avança o cursor de acordo com a largura reservada para o caractere
+				cursor_x += (uint8_t)pgm_read_byte(&glyph->xAdvance) * (int16_t)textsize;
+			}
+		}
+
+	}
+	return 1;
 }
 
 
@@ -3799,6 +3904,7 @@ void charBounds(char c, int16_t *x, int16_t *y, int16_t *minx, int16_t *miny, in
     }
 }
 
+
 /**************************************************************************/
 /*!
     @brief    Helper to determine size of a string with current font/size. Pass string and a cursor position, returns UL corner and W,H.
@@ -3834,38 +3940,120 @@ void getTextBounds(const char *str, int16_t x, int16_t y, int16_t *x1, int16_t *
 }
 
 
+/**************************************************************************/
+/*!
+    @brief Print a new string on the TFT LCD
+    @param  row	The vertical pixel of botton left (BL) cursor
+    @param  txtcolor	The color of the text
+    @param  txtcolor	The color of the text
+    @param	txtsize	The size of de text
+    @param	str	A point to the string
+*/
+/**************************************************************************/
 void printnewtstr (int row, uint16_t txtcolor, const GFXfont *f, uint8_t txtsize, uint8_t *str)
 {
 	setFont(f);
 	textcolor = txtcolor;
 	textsize = (txtsize > 0) ? txtsize : 1;
 	setCursor(0, row);
-	while (*str) write (*str++);
+	//while (*str) write (*str++);
+	while (*str) write(*str++);
 }
+
+/**************************************************************************/
+/*!
+    @brief Print a new string on the TFT LCD using the background color
+    @param  row	The vertical pixel of botton left (BL) cursor
+    @param  txtcolor	The color of the text
+    @param	txtbackcolor	The text background color
+    @param  txtcolor	The color of the text
+    @param	txtsize	The size of de text
+    @param	str	A point to the string
+*/
+/**************************************************************************/
+void printnewtstr_bc(int row, uint16_t txtcolor, uint16_t txtbackcolor, const GFXfont *f, uint8_t txtsize, uint8_t *str)
+{
+	setFont(f);
+	textcolor = txtcolor;
+	textbgcolor = txtbackcolor;
+	textsize = (txtsize > 0) ? txtsize : 1;
+	setCursor(0, row);
+	//while (*str) write (*str++);
+	while (*str) write_fillbackground(*str++);
+}
+
+/**************************************************************************/
+/*!
+    @brief Print a string on the TFT LCD
+    @param	str	A point to the string
+*/
+/**************************************************************************/
 
 void printstr (uint8_t *str)
 {
 	while (*str) write (*str++);
 }
 
-void setTextWrap(uint8_t w) { wrap = w; }
+/**************************************************************************/
+/*!
+    @brief Print a string on the TFT LCD using the background color
+    @param	str	A point to the string
+*/
+/**************************************************************************/
+void printstr_bc (uint8_t *str)
+{
+	while (*str) write_fillbackground (*str++);
+}
 
+/**************************************************************************/
+/*!
+    @brief Enable the wrap text (quebra automática de texto)
+    @param	w	Boolean to enable text wrapping
+*/
+/**************************************************************************/
+
+void setTextWrap(uint8_t w)
+{
+	wrap = w;
+}
+
+/**************************************************************************/
+/*!
+    @brief Set the text color
+    @param	color Value of a RGB565 color to the text
+*/
+/**************************************************************************/
 void setTextColor (uint16_t color)
+{
+	textbgcolor = color;
+}
+
+/**************************************************************************/
+/*!
+    @brief Set the background text color
+    @param	color Value of a RGB565 color to the text
+*/
+/**************************************************************************/
+void setTextBackColor (uint16_t color)
 {
 	textcolor = color;
 }
+
 
 void setTextSize (uint8_t size)
 {
 	textsize = size;
 }
 
-void setCursor(int16_t x, int16_t y) { cursor_x = x; cursor_y = y; }
+
+void setCursor(int16_t x, int16_t y)
+{ cursor_x = x; cursor_y = y; }
 
 uint8_t getRotation (void)
 {
 	return rotation;
 }
+
 
 void scrollup (uint16_t speed)
 {
@@ -3880,11 +4068,12 @@ void scrollup (uint16_t speed)
      }
 }
 
+
 void scrolldown (uint16_t speed)
 {
 	uint16_t maxscroll;
 	if (getRotation() & 1) maxscroll = width();
-	     else maxscroll = height();
+	else maxscroll = height();
 	for (uint16_t i = 1; i <= maxscroll; i++)
 	{
 		vertScroll(0, maxscroll, 0 - (int16_t)i);
@@ -3892,6 +4081,7 @@ void scrolldown (uint16_t speed)
 		else HAL_Delay(speed);
 	}
 }
+
 
 /****************** delay in microseconds ***********************/
 extern TIM_HandleTypeDef htim1;
@@ -3902,6 +4092,7 @@ void delay (uint32_t time)
 	while ((__HAL_TIM_GET_COUNTER(&htim1))<time);
 }
 
+
 /****************** Integração com câmera ***********************/
 //Testado com LCF TFT ILI9340
 void desenhaPixel(uint16_t pixel)
@@ -3909,16 +4100,28 @@ void desenhaPixel(uint16_t pixel)
 	write16(pixel);
 }
 
+
 void inicioDados(void)
 {
 	CS_ACTIVE;
-	WriteCmd(0x2C);
+
+				 #ifndef SUPPORT_8347D
+
+				 WriteCmd(0x2C);
+
+				 #else
+
+				 WriteCmd(0x22);
+
+				 #endif
 }
+
 
 void fimDados(void)
 {
 	CS_IDLE;
 }
+
 
 /****************** Inicialização de GPIOs **********************/
 void tft_gpio_init(void)
@@ -3942,6 +4145,7 @@ void tft_gpio_init(void)
 	PIN_OUTPUT(D6_PORT, D6_PIN);
 	PIN_OUTPUT(D7_PORT, D7_PIN);
 }
+
 
 /****************** Implementação de funções para LCD *************/
 /* Algumas funções que possuiam protótipo no arquivo functions.h,
