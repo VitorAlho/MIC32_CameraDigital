@@ -131,6 +131,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 /* USER CODE BEGIN 0 */
 
 void exibirFrameNoDisplay ( void ) {
+
 	if( W==320 ){
 
 		setAddrWindow( 0, 0, W, H );
@@ -167,8 +168,6 @@ void piscaTelaDoDisplay ( uint8_t color ) {
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
-
 
 	int32_t i;
 
@@ -652,16 +651,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 }
 
-
-
-
-
-
 //Gera uma cor no formato RGB 565
-uint16_t geraRGB565(uint8_t red, uint8_t green, uint8_t blue)
+
+uint16_t geraRGB565( uint8_t red, uint8_t green, uint8_t blue )
 {
+
 	//rrrrrggg gggbbbbb
-	return ((red<<8)&0xF800) + ((green<<5)&0x07E0) + ((blue>>3)&0x001F);
+
+	return ( ( red << 8 ) & 0xF800 ) + ( ( green << 5 ) & 0x07E0 ) + ( ( blue >>3 ) & 0x001F );
+
 }
 
 //Envia uma string como um bitmp para o LCD TFT

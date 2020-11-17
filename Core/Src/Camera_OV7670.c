@@ -311,6 +311,15 @@ extern uint8_t oneTime;
 
 extern uint8_t ultimaFotoTirada;
 
+uint8_t header[] = { \
+					0x42, 0x4d, 0x36, 0x84, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, \
+					0x36, 0x00, 0x00, 0x00, \
+					0x28, 0x00, 0x00, 0x00, 0x40, 0x01, 0x00, 0x00, 0xf0, 0x00, \
+					0x00, 0x00, 0x01, 0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, \
+					0x00, 0x84, 0x03, 0x00, 0xc4, 0x0e, 0x00, 0x00, 0xc4, 0x0e, \
+					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 \
+					};
+
 void captureImg(uint16_t wg, uint16_t hg, UART_HandleTypeDef *huart)
 {
 	//Observação: evitei o uso da biblioteca HAL para diminuir a latência dos comando
@@ -383,13 +392,15 @@ void captureImg(uint16_t wg, uint16_t hg, UART_HandleTypeDef *huart)
 
 					fr = fileMount(&fs0, "", 0);
 
-						sprintf((char *)nomeFoto,"foto%d.txt",ultimaFotoTirada);
+						//sprintf((char *)nomeFoto,"foto%d.txt",ultimaFotoTirada);
+						sprintf((char *)nomeFoto,"foto%d.bmp",ultimaFotoTirada);
 
 						ultimaFotoTirada++;
 
 						fr = fileOpen(&fsrc, nomeFoto, FA_WRITE | FA_CREATE_ALWAYS);
 
 						// Escrever cabeçalho BMP
+						fr = fileWrite(&fsrc, header, 81, &bytesWritten);
 
 				}
 

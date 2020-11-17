@@ -4105,15 +4105,15 @@ void inicioDados(void)
 {
 	CS_ACTIVE;
 
-				 #ifndef SUPPORT_8347D
+	#ifndef SUPPORT_8347D
 
-				 WriteCmd(0x2C);
+	WriteCmd(0x2C);
 
-				 #else
+	#else
 
-				 WriteCmd(0x22);
+	WriteCmd(0x22);
 
-				 #endif
+	#endif
 }
 
 

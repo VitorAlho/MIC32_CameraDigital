@@ -11,6 +11,8 @@
 #ifndef USER_SETTING_H_
 #define USER_SETTING_H_
 
+#define _VITOR_
+//#define _ELTON_
 
 #define RD_PORT GPIOA
 #define RD_PIN  GPIO_PIN_0
@@ -172,7 +174,13 @@
 //#define SUPPORT_7735
 //#define SUPPORT_7781              //ST7781 +172 bytes
 //#define SUPPORT_8230              //UC8230 +118 bytes
-#define SUPPORT_8347D             //HX8347-D, HX8347-G, HX8347-I, HX8367-A +520 bytes, 0.27s
+#ifdef _VITOR_
+
+#else
+	#ifdef _ELTON_
+		#define SUPPORT_8347D             //HX8347-D, HX8347-G, HX8347-I, HX8367-A +520 bytes, 0.27s
+	#endif
+#endif
 //#define SUPPORT_8347A             //HX8347-A +500 bytes, 0.27s
 //#define SUPPORT_8352A             //HX8352A +486 bytes, 0.27s
 //#define SUPPORT_8352B             //HX8352B
