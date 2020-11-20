@@ -272,13 +272,16 @@ int main(void)
 
 	  if( flagBotaoCapturar == PRESSIONADO ) {
 
-		  exibirFrameNoDisplay();
+		  HAL_Delay(100);
+
+		  captureAndSaveImg(W, H, &huart2);
 
 		  oneTime = 0;
 
 		  flagBotaoCapturar = SOLTO;
 
 		  piscaTelaDoDisplay(BLACK);
+
 	  }
 
   }

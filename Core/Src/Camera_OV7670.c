@@ -287,10 +287,13 @@ void setRes(void)
 
 void camInit(void)
 {
-  wrReg(0x12, 0x80);              //(reseta todos os registradores para o valor default)
+  wrReg(0x12, 0x80);              //reseta todos os registradores para o valor default)
   HAL_Delay(100);
   wrSensorRegs8_8(ov7670_default_regs);
   wrReg(REG_COM10, 32);			  //PCLK does not toggle on HBLANK.
+  //wrReg(EXHCH_MSB, 0x0F);
+  wrReg(REG_HSYEN, 0xff);
+  wrReg(REG_HSYST, 0xff);
 
  // wrReg(REG_COM17, 0X00); // Vitor 14/11/20 (Minha imagem da camera estava duplicada))
 }
@@ -305,8 +308,6 @@ fileErrorCode fr;						/* FatFs function common result code */
 
 UINT br, bw;					/* File read/write count */
 
-extern uint8_t flagBotaoCapturar;
-
 extern uint8_t oneTime;
 
 extern uint8_t ultimaFotoTirada;
@@ -320,14 +321,150 @@ uint8_t header[] = { \
 					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 \
 					};
 
-void captureImg(uint16_t wg, uint16_t hg, UART_HandleTypeDef *huart)
+struct pixelBMP{
+	uint8_t blue;
+	uint8_t green;
+	uint8_t red;
+};
+
+typedef struct pixelBMP BmpPixel;
+
+void converToBitMap_BGR( uint16_t *pixelRGB, BmpPixel *pixelBGR, uint32_t bytesToConvert ) {
+
+	uint32_t pixelRGB_BackupAddr = pixelRGB;
+
+	uint32_t pixelBGR_BackupAddr = pixelBGR;
+
+	uint32_t i = 0;
+
+	for( i = 0; i < bytesToConvert; i++ ) {
+
+		(*pixelBGR).red   = *pixelRGB >> 8 & 0xF8; //red = 0b00001000
+
+		(*pixelBGR).green = *pixelRGB >> 3 & 0xFC; //green = 0b00001000
+
+		(*pixelBGR).blue  = *pixelRGB << 3 & 0xF8; //blue = 0b00011000
+
+		pixelBGR++;
+
+		pixelRGB++;
+
+	}
+
+	pixelBGR = pixelBGR_BackupAddr;
+
+	pixelRGB = pixelRGB_BackupAddr;
+
+}
+
+void captureAndSaveImg(uint16_t wg, uint16_t hg, UART_HandleTypeDef *huart)
 {
 	//Observação: evitei o uso da biblioteca HAL para diminuir a latência dos comando
+
 	uint16_t pixelx[wg];
+
+	BmpPixel pixelBitMap[wg];
+
 	uint16_t y, x, pixel;
 	uint16_t R = 0, G = 0, B = 0; //pixelx[wg];
 
 	uint8_t nomeFoto [10];
+
+	fileErrorCode fr;
+	uint32_t bytesWritten = 0;
+
+	if( oneTime == 0 ) {
+
+		oneTime = 1;
+
+		fr = fileMount(&fs0,"", 0);
+
+		//sprintf((char *)nomeFoto,"foto%d.txt",ultimaFotoTirada);
+		sprintf((char *)nomeFoto,"foto0%d.bmp",ultimaFotoTirada);
+
+		ultimaFotoTirada++;
+
+		fr = fileOpen(&fsrc, nomeFoto, FA_WRITE | FA_CREATE_ALWAYS);
+
+		// Escrever cabeçalho BMP
+		fr = fileWrite(&fsrc, header, 81, &bytesWritten);
+
+	}
+
+	//HAL_UART_Transmit(HUART, "*RDY*", 5, 5);	//Envia o aviso de novo frame para o programa OV7670
+
+	while (!VSYNC);	//Espera uma borda de subida	(__/''')
+	while ( VSYNC);	//Espera uma borda de descida	('''\__)
+
+	for(y = 0; y < hg; y++)
+	{
+
+		//Não é obrigatório, funciona sem o teste, 24/7 tive que comentar por falha
+		//while (!HREF);	//Espera uma borda de subida	(__/''')
+
+		for(x = 0; x < wg; x++)
+		{
+			while ( PCLK);	//Espera uma borda de descida	('''\__)
+			while (!PCLK);	//Espera uma borda de subida	(__/''')
+
+			pixel = PIXEL;	//Lê o pixel paralelo
+
+			//Habilitar para usar aplicativo no PC OV7670 - 320x240 monocromático ou RGB MSB
+			//HUART->Instance->DR = pixel;	//Transmite o pixel pela serial, DATA byte mais significativo do YUV: Y (luma) ou RGB: 5R e 3G)
+#ifndef RGB
+			//Habilitar para enviar 320x240 monocromático para o LCD TFT
+			//Coversão para de YUV para RGB565 monocromático
+			R = (pixel & 0b11111000)<<8;
+			G = (pixel & 0b11111100)<<3;
+			B = (pixel & 0b11111000)>>3;
+			//pixelx[x] = R | G | B;
+
+			pixelBitMap[x].red   = R >> 8 & 0xF8; //red = 0b00001000
+
+			pixelBitMap[x].green = G >> 3 & 0xFC; //green = 0b00001000
+
+			pixelBitMap[x].blue  = B << 3 & 0xF8; //blue = 0b00011000
+
+#else
+			//Habilitar para enviar 320x240 RGB para o LCD TFT
+			pixel = pixel << 8; //RGB MSB
+#endif
+
+			while ( PCLK);	//Espera uma borda de descida	('''\__)
+			while (!PCLK);	//Espera uma borda de subida	(__/''')
+
+#ifdef RGB
+			pixel |= PIXEL;	//Lê o pixel paralelo (byte menos significativo)
+			//Habilitar para enviar pela serial - 320x240 RGB LSB
+			//HUART->Instance->DR = pixel;	//Transmite o pixel pela serial, DATA byte menos significativo do RGB: 3G e 5B)
+			//Habilitar para enviar 320x240 RGB para o LCD TFT
+			pixelx[x] = pixel;
+#endif
+		}
+
+		//Tratamento e plotagem de pixels no display TFT
+
+		fr = fileWrite(&fsrc, pixelBitMap, wg * 3, &bytesWritten);
+
+		while (HREF);	//Espera uma borda de descida	('''\__)
+	}
+
+	if( oneTime == 1 ){
+
+		fr = fileClose(&fsrc);
+
+	}
+
+	HAL_Delay(2);
+}
+
+void captureImg(uint16_t wg, uint16_t hg, UART_HandleTypeDef *huart)
+{
+	//Observação: evitei o uso da biblioteca HAL para diminuir a latência dos comando
+
+	uint16_t pixelx[wg];
+	uint16_t y, x, pixel;
+	uint16_t R = 0, G = 0, B = 0; //pixelx[wg];
 
 
 	//HAL_UART_Transmit(HUART, "*RDY*", 5, 5);	//Envia o aviso de novo frame para o programa OV7670
@@ -378,44 +515,9 @@ void captureImg(uint16_t wg, uint16_t hg, UART_HandleTypeDef *huart)
 
 		for(x = 0; x < wg; x++)
 		{
-			//Plota pixels
-			if( flagBotaoCapturar ) {
 
-				// SALVAR FRAME
-				//salvarFrameNoCartaoSD( pixelx );
-				fileErrorCode fr;
-				uint32_t bytesWritten = 0;
+			desenhaPixel(pixelx[x]);
 
-				if( oneTime == 0 ) {
-
-					oneTime = 1;
-
-					fr = fileMount(&fs0, "", 0);
-
-						//sprintf((char *)nomeFoto,"foto%d.txt",ultimaFotoTirada);
-						sprintf((char *)nomeFoto,"foto%d.bmp",ultimaFotoTirada);
-
-						ultimaFotoTirada++;
-
-						fr = fileOpen(&fsrc, nomeFoto, FA_WRITE | FA_CREATE_ALWAYS);
-
-						// Escrever cabeçalho BMP
-						fr = fileWrite(&fsrc, header, 81, &bytesWritten);
-
-				}
-
-				// Função de conversão de rbg565 para bmp
-
-				fr = fileWrite(&fsrc, pixelx, wg, &bytesWritten);
-
-				break;
-
-			}
-			else{
-
-				desenhaPixel(pixelx[x]);
-
-			}
 		}
 
 		while (HREF);	//Espera uma borda de descida	('''\__)
@@ -443,7 +545,7 @@ void setup(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *huart)
 	wrReg(0x11, 24);  //Prescaler freq. de saída de dados: 24+1 //Vide: https://circuitdigest.com/microcontroller-projects/how-to-use-ov7670-camera-module-with-arduino
 #else
 	#ifdef W320H240
-		wrReg(REG_CLKRC, 25); //Valor mínimo empírico do prescaler para escrita direta no LCD - Vitor 14/11/2020
+		wrReg(REG_CLKRC, 23); //Valor mínimo empírico do prescaler para escrita direta no LCD - Vitor 14/11/2020
 	#else
 		#ifdef RGB
 			wrReg(REG_CLKRC, 11);     //Valor mínimo empírico do prescaler para escrita direta no LCD

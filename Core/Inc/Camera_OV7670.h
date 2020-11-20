@@ -125,11 +125,12 @@
 #define MVFP_MIRROR        			0x20  /* Mirror image */
 #define MVFP_FLIP   				0x10  /* Vertical flip */
 
+#define EXHCH_MSB					0x2A  /* Registrador para enviar pixels adicionais no fim da linha para perder tempo*/
 #define REG_AEW           			0x24  /* AGC upper limit */
 #define REG_AEB           			0x25    /* AGC lower limit */
 #define REG_VPT           			0x26  /* AGC/AEC fast mode op region */
 #define REG_HSYST   				0x30  /* HSYNC rising edge delay */
-#define REG_HSYEN   				0x31  /* HSYNC falling edge delay */
+#define REG_HSYEN    				0x31  /* HSYNC falling edge delay */
 #define REG_HREF    				0x32  /* HREF pieces */
 #define REG_TSLB    				0x3a  /* lots of stuff */
 #define TSLB_YLAST    				0x04  /* UYVY or VYUY - see com13 */
@@ -356,6 +357,7 @@ void setColor(void);
 void setRes(void);
 void camInit(void);
 void captureImg(uint16_t wg, uint16_t hg, UART_HandleTypeDef *huart);
+void captureAndSaveImg(uint16_t wg, uint16_t hg, UART_HandleTypeDef *huart);
 void setup(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *huart);
 void loop();
 
