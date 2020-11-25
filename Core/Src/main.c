@@ -22,7 +22,6 @@
 #include "main.h"
 #include "fatfs.h"
 
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 //Bibliotecas do LCD
@@ -252,6 +251,12 @@ int main(void)
 
   setup( &hi2c1, &huart2 );
 
+  HAL_Delay(100);
+
+  wrReg(EXHCH_MSB, 0x00);
+
+  wrReg(REG_CLKRC, 8);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -274,7 +279,11 @@ int main(void)
 
 		  HAL_Delay(100);
 
+		  wrReg(EXHCH_MSB, 0x60);
+
 		  captureAndSaveImg(W, H, &huart2);
+
+		  wrReg(EXHCH_MSB, 0x00);
 
 		  oneTime = 0;
 
@@ -309,17 +318,11 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 180;
+  RCC_OscInitStruct.PLL.PLLN = 168;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Activate the Over-Drive mode
-  */
-  if (HAL_PWREx_EnableOverDrive() != HAL_OK)
   {
     Error_Handler();
   }
@@ -478,7 +481,7 @@ static void MX_TIM3_Init(void)
   htim3.Instance = TIM3;
   htim3.Init.Prescaler = 0;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 8;
+  htim3.Init.Period = 7;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)

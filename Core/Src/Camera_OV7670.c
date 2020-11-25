@@ -290,10 +290,9 @@ void camInit(void)
   wrReg(0x12, 0x80);              //reseta todos os registradores para o valor default)
   HAL_Delay(100);
   wrSensorRegs8_8(ov7670_default_regs);
-  wrReg(REG_COM10, 32);			  //PCLK does not toggle on HBLANK.
-  //wrReg(EXHCH_MSB, 0x0F);
-  wrReg(REG_HSYEN, 0xff);
-  wrReg(REG_HSYST, 0xff);
+  wrReg(REG_COM10, 32);			  //PCLK does not toggle on HBLANK
+  //wrReg(REG_HSYEN, 0xff);
+ //wrReg(REG_HSYST, 0xff);
 
  // wrReg(REG_COM17, 0X00); // Vitor 14/11/20 (Minha imagem da camera estava duplicada))
 }
@@ -396,11 +395,13 @@ void captureAndSaveImg(uint16_t wg, uint16_t hg, UART_HandleTypeDef *huart)
 	while (!VSYNC);	//Espera uma borda de subida	(__/''')
 	while ( VSYNC);	//Espera uma borda de descida	('''\__)
 
+	while (!HREF);	//Espera uma borda de subida
+
 	for(y = 0; y < hg; y++)
 	{
 
 		//Não é obrigatório, funciona sem o teste, 24/7 tive que comentar por falha
-		//while (!HREF);	//Espera uma borda de subida	(__/''')
+
 
 		for(x = 0; x < wg; x++)
 		{
@@ -472,11 +473,13 @@ void captureImg(uint16_t wg, uint16_t hg, UART_HandleTypeDef *huart)
 	while (!VSYNC);	//Espera uma borda de subida	(__/''')
 	while ( VSYNC);	//Espera uma borda de descida	('''\__)
 
+	while (!HREF);	//Espera uma borda de subida	(__/''')
+
 	for(y = 0; y < hg; y++)
 	{
 
 		//Não é obrigatório, funciona sem o teste, 24/7 tive que comentar por falha
-		//while (!HREF);	//Espera uma borda de subida	(__/''')
+
 
 		for(x = 0; x < wg; x++)
 		{
@@ -545,7 +548,7 @@ void setup(I2C_HandleTypeDef *hi2c, UART_HandleTypeDef *huart)
 	wrReg(0x11, 24);  //Prescaler freq. de saída de dados: 24+1 //Vide: https://circuitdigest.com/microcontroller-projects/how-to-use-ov7670-camera-module-with-arduino
 #else
 	#ifdef W320H240
-		wrReg(REG_CLKRC, 23); //Valor mínimo empírico do prescaler para escrita direta no LCD - Vitor 14/11/2020
+		wrReg(REG_CLKRC, 11); //Valor mínimo empírico do prescaler para escrita direta no LCD - Vitor 14/11/2020
 	#else
 		#ifdef RGB
 			wrReg(REG_CLKRC, 11);     //Valor mínimo empírico do prescaler para escrita direta no LCD
